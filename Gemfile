@@ -4,3 +4,4 @@ source "http://rubygems.org"
 gemspec
 
 gem "zk-service-registry", :git => "http://github.com/dunadube/zk-service-registry.git" 
+gem "persistent_http"

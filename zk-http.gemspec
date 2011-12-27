@@ -4,7 +4,7 @@ require "zk-http/version"
 
 Gem::Specification.new do |s|
   s.name        = "zk-http"
-  s.version     = Zk::Http::VERSION
+  s.version     = ZK::Http::VERSION
   s.authors     = ["Stefan Huber"]
   s.email       = ["stefan.huber@friendscout24.de"]
   s.homepage    = ""
