@@ -2,6 +2,7 @@ require "zk-http/version"
 require 'zk-service-registry'
 require 'persistent_http'
 
+# Monkeypath for better testing
 class GenePool
   def connections_count
     @mutex.synchronize do
@@ -11,10 +12,8 @@ class GenePool
 end
 
 module ZK
-  
-  # Always use the first service instance 
-  # in the list returned from the service registry
-  class FirstInListStrategy
+
+  class BaseStrategy
     attr_accessor :svcname
 
     def initialize(svcname, finder_instance=nil)
@@ -23,15 +22,31 @@ module ZK
       @finder.watch(svcname)
     end
 
-    def create_http_connection(failed_instance=nil)
-      Net::HTTP.new(*next_best_instance(failed_instance))
+    def create_http_connection
+      raise ArgumentError.new "Implement in subclass"
     end
+
+    private
 
     def service_instances
       @finder.instances.map do |instance|
-        host, port = instance.split(":")
+        host, port = instance.name.split(":")
         [host, port.to_i]
       end
+    end
+    
+  end
+  
+  # Always use the first service instance 
+  # in the list returned from the service registry
+  class FirstInListStrategy < BaseStrategy
+
+    def initialize(svcname, finder_instance=nil)
+      super(svcname, finder_instance)
+    end
+
+    def create_http_connection(failed_instance=nil)
+      Net::HTTP.new(*next_best_instance(failed_instance))
     end
 
     protected
@@ -46,13 +61,36 @@ module ZK
     end
   end
 
+  # Simple random load balancing strategy
+  # among available service instances
+  class RandomLBStrategy < BaseStrategy
+    attr_accessor :svcname
+
+    def initialize(svcname, finder_instance=nil)
+      super(svcname, finder_instance)
+    end
+
+    def create_http_connection
+      Net::HTTP.new(*next_best_instance)
+    end
+
+    protected
+
+    def next_best_instance
+      service_instances.shuffle.first
+    end
+  end
+  
+  # Inherits most HTTP stuff from PersistentHTTP
+  # Overrides constructor to implement connection
+  # factory strategy pattern
   class HttpClientPooled < PersistentHTTP
     def initialize(opts = {})
       # PersistentHttp requires a host
       # However we are not really going to use it
       # so let's just set a dummy host
       opts[:host] = "dummy"  
-      opts[:pool_size] = 5 if !opts[:pool_size]
+      opts[:pool_size] = 10 if !opts[:pool_size]
       opts[:name] = "default" if !opts[:name]
       raise ArgumentError.new("Please set a connection strategy") if !opts[:connection_strategy]
       
