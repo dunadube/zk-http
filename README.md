@@ -16,7 +16,10 @@ HttpClientPooled inherits the connection pooling capabilities from PersistentHtt
 ## Examples
 
 Take a look at the examples directory for a working example of a webserver making calls to two service instances (uses sinatra).
- Basically you use it like this:
+
+**NOTE**: a local Zookeeper service must be running on port 2181 for the examples to work!!!
+
+Basically you use zk-http like this:
 
     # Lets say we want to call a service called "foo"
     # create an http client with connection pooling and a simple load balancing strategy
